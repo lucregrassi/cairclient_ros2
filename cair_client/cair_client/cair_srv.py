@@ -1,4 +1,12 @@
 #!/usr/bin/env python
+"""
+Author:      Lucrezia Grassi
+Email:       lucrezia.grassi@edu.unige.it
+Affiliation: Laboratorium, DIBRIS, University of Genoa, Italy
+Project:     CAIR
+
+This file contains a client for the CAIR server
+"""
 
 from __future__ import print_function
 import rclpy
@@ -9,8 +17,8 @@ import json
 from rclpy.node import Node
 from cair_interfaces.srv import CairSrv
 
-cineca = "131.175.198.134"
-BASE = "http://" + cineca + ":5000/"
+server_IP = "131.175.205.146"
+BASE = "http://" + server_IP + ":5000/CAIR_hub"
 
 class MinimalService(Node):
 
@@ -20,19 +28,22 @@ class MinimalService(Node):
 
 	def cair_client_callback(self, request, response):
 		print(os.getcwd())
-		if not os.path.exists("state.txt"):
-			res = requests.put(BASE + "CAIR_server", verify=False)
-			client_state = res.json()['client_state']
+		if not os.path.exists("dialogue_state.txt"):
+			res = requests.put(BASE, verify=False)
+			dialogue_state = res.json()['dialogue_state']
 			# Save the client state in the file
-			with open("state.txt", 'wb') as f:
-				pickle.dump(client_state, f)
+			with open("dialogue_state.txt", 'wb') as f:
+				pickle.dump(dialogue_state, f)
 		else: 
-			with open("state.txt", 'rb') as f:
-				client_state = pickle.load(f)
-		server_resp = requests.get(BASE + "CAIR_server/" + request.sentence, data=json.dumps(client_state), verify=False)
-		client_state = server_resp.json()['client_state']
-		with open("state.txt", 'wb') as f:
-            		pickle.dump(client_state, f)
+			with open("dialogue_state.txt", 'rb') as f:
+				dialogue_state = pickle.load(f)
+		data = {"sentence": sentence, "dialogue_state": dialogue_state}
+		encoded_data = json.dumps(data).encode('utf-8')
+        	compressed_data = zlib.compress(encoded_data)
+		server_resp = requests.get(BASE, data=compressed_data, verify=False)
+		dialogue_state = server_resp.json()['dialogue_state']
+		with open("dialogue_state.txt", 'wb') as f:
+            		pickle.dump(dialogue_state, f)
 		response.intent_reply = server_resp.json()['intent_reply']
 		response.plan = server_resp.json()['plan']
 		response.reply = server_resp.json()['reply']
