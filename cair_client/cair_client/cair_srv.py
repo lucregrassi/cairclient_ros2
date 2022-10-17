@@ -12,7 +12,6 @@ from __future__ import print_function
 import rclpy
 import requests
 import os
-import pickle
 import json
 from rclpy.node import Node
 from cair_interfaces.srv import CairSrv
@@ -28,29 +27,29 @@ class MinimalService(Node):
 
 	def cair_client_callback(self, request, response):
 		print(os.getcwd())
-		if not os.path.exists("dialogue_state.txt"):
-			res = requests.put(BASE, verify=False)
+		if not os.path.exists("dialogue_state.json"):
+			res = requests.get(BASE, verify=False)
 			dialogue_state = res.json()['dialogue_state']
 			# Save the client state in the file
-			with open("dialogue_state.txt", 'wb') as f:
-				pickle.dump(dialogue_state, f)
+			with open("dialogue_state.json", 'w') as f:
+				json.dump(dialogue_state, f)
 		else: 
-			with open("dialogue_state.txt", 'rb') as f:
-				dialogue_state = pickle.load(f)
-		data = {"sentence": sentence, "dialogue_state": dialogue_state}
+			with open("dialogue_state.json", 'r') as f:
+				dialogue_state = json.load(f)
+		data = {"client_sentence": sentence, "dialogue_state": dialogue_state}
 		encoded_data = json.dumps(data).encode('utf-8')
         	compressed_data = zlib.compress(encoded_data)
-		server_resp = requests.get(BASE, data=compressed_data, verify=False)
+		server_resp = requests.put(BASE, data=compressed_data, verify=False)
 		dialogue_state = server_resp.json()['dialogue_state']
-		with open("dialogue_state.txt", 'wb') as f:
-            		pickle.dump(dialogue_state, f)
-		response.intent_reply = server_resp.json()['intent_reply']
+		with open("dialogue_state.json", 'w') as f:
+            		json.dump(dialogue_state, f)
+		response.plan_sentence = server_resp.json()['plan_sentence']
 		response.plan = server_resp.json()['plan']
-		response.reply = server_resp.json()['reply']
-		self.get_logger().info('Incoming sentence:%s' % request.sentence)
-		self.get_logger().info('Intent reply: %s' % response.intent_reply)
+		response.dialogue_sentence = server_resp.json()['dialogue_sentence']
+		self.get_logger().info('Incoming sentence:%s' % request.client_sentence)
+		self.get_logger().info('Plan sentence: %s' % response.plan_sentence)
 		self.get_logger().info('Plan: %s' % response.plan)
-		self.get_logger().info('Reply: %s' % response.reply)
+		self.get_logger().info('Dialogue sentence: %s' % response.dialogue_sentence)
 		return response
 
 
