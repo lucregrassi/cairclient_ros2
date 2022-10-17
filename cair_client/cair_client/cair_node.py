@@ -34,12 +34,12 @@ def main():
 				except Exception as e:
 					minimal_client.get_logger().info('Service call failed %r' % (e,))
 				else:
-					reply = response.reply
-					if response.intent_reply:
+					reply = response.dialogue_sentence
+					if response.plan_sentence:
 						if response.plan:
-							reply = response.intent_reply + " " + response.plan + " " + response.reply
+							reply = response.plan_sentence + " " + response.plan + " " + response.dialogue_sentence
 						else:
-							reply = response.intent_reply + " " + response.reply
+							reply = response.plan_sentence + " " + response.dialogue_sentence
 					print("R:", reply)
 				break
 
